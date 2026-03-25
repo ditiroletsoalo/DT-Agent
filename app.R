@@ -4,6 +4,7 @@ if (file.exists("secrets.R")) source("secrets.R")
 library(shiny)
 library(ellmer)
 library(pdftools)
+library(rsconnect)
 
 cv_text <- paste(pdf_text("Letsoalo_Ditiro_CV.pdf"), collapse = "\n")
 
@@ -65,3 +66,6 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server)
+
+
+
