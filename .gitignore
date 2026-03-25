@@ -1,5 +1,6 @@
-.Rproj.user
+# .gitignore
 .Rhistory
 .RData
-.Ruserdata
-.secrets.R
+.Rproj.user
+secrets.R
+rsconnect/
