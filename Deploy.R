@@ -4,5 +4,5 @@ rsconnect::setAccountInfo(name='ditiroletsoalo',
 
 rsconnect::deployApp(
   appName = "ditiro",
-  appFiles = c("app.R", "secrets.R", "Letsoalo_Ditiro_CV.pdf")
+  appFiles = c("app.R", "secrets.R", "Letsoalo_Ditiro_CV.pdf", "ditiro.jpg")
 )
