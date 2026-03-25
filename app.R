@@ -425,7 +425,7 @@ ui <- fluidPage(
           }
         }
         typeNext();
-      }, 20);
+      }, 300);
     });
   "))
 )
@@ -508,10 +508,14 @@ server <- function(input, output, session) {
     if (grepl("SHOW_PHOTO", response)) {
       clean_response <- trimws(gsub("SHOW_PHOTO", "", response))
       history(c(history(), list(list(role = "agent", text = clean_response, photo = TRUE))))
+      # For photo messages just scroll - skip typewriter so image is not wiped
+      later::later(function() {
+        session$sendCustomMessage("scrollBottom", list())
+      }, 0.4)
     } else {
       history(c(history(), list(list(role = "agent", text = response, photo = FALSE))))
+      session$sendCustomMessage("animateLastAgent", list())
     }
-    session$sendCustomMessage("animateLastAgent", list())
   })
   
   output$chat_history <- renderUI({
