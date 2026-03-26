@@ -1,9 +1,9 @@
-source("secrets.R")
+if (file.exists("secrets.R")) source("secrets.R")
 
 library(shiny)
 library(ellmer)
 library(pdftools)
-library(commonmark)
+library(commonmark) # <--- Added this for "Proper" text rendering
 
 # ── DATA PREP ──
 cv_text <- tryCatch({
@@ -25,6 +25,7 @@ ui <- fluidPage(
       }
       .page-wrap { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
 
+      /* ── WELCOME SCREEN ── */
       .welcome-screen {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         min-height: 70vh; text-align: center; animation: fadeUp 0.8s ease;
@@ -45,6 +46,7 @@ ui <- fluidPage(
         border-radius: 12px; color: white; padding: 0 30px; font-weight: 600; cursor: pointer;
       }
 
+      /* ── CHAT SCREEN ── */
       .big-greeting {
         font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800;
         background: linear-gradient(90deg, #a78bfa, #f472b6);
@@ -58,13 +60,14 @@ ui <- fluidPage(
         background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
         border-radius: 24px; overflow: hidden; backdrop-filter: blur(20px);
       }
-      .chat-messages { height: 480px; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; }
+      .chat-messages { height: 480px; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
       
       .msg-row { display: flex; gap: 12px; }
       .msg-row.user { flex-direction: row-reverse; }
       
       .msg-bubble { max-width: 82%; padding: 16px 20px; border-radius: 20px; line-height: 1.7; font-size: 0.98rem; }
       
+      /* THIS STOPS THE ** SHOWING AND MAKES IT LOOK PROPER */
       .msg-bubble.agent { 
         background: rgba(99, 60, 255, 0.12); border: 1px solid rgba(167, 139, 250, 0.2); 
         color: #e8e8ff; border-bottom-left-radius: 4px;
@@ -96,31 +99,21 @@ ui <- fluidPage(
       uiOutput("current_view")
   ),
   
-  # ── JAVASCRIPT: AUTO-SCROLL LOGIC ──
   tags$script(HTML("
     $(document).on('keypress', '#visitor_name', function(e) { if (e.which == 13) { $('#start_chat').click(); } });
     $(document).on('keypress', '#user_input', function(e) { if (e.which == 13) { $('#send').click(); } });
-
-    // This observer watches the chat box and scrolls down as text is typed/generated
-    const observer = new MutationObserver(() => {
-      const el = document.getElementById('chat_messages');
-      if (el) { el.scrollTop = el.scrollHeight; }
-    });
-
-    $(document).on('shiny:visualchange', function() {
-      const target = document.getElementById('chat_messages');
-      if (target) { observer.observe(target, { childList: true, subtree: true }); }
+    Shiny.addCustomMessageHandler('scrollBottom', function() {
+      var el = document.getElementById('chat_messages'); if(el) el.scrollTop = el.scrollHeight;
     });
   "))
 )
 
 server <- function(input, output, session) {
   
-  # Set up the Mistral Chat
   chat <- chat_mistral(model = "mistral-small", api_key = Sys.getenv("MISTRAL_API_KEY"))
   chat$chat(paste0(
     "You are the AI for Ditiro Letsoalo. Context: ", cv_text,
-    "\nRULES: Be professional and warm. Use bold text and bullet points."
+    "\nRULES: Be professional and warm. Use bold text and bullet points to organize long answers."
   ))
   
   history <- reactiveVal(list())
@@ -133,27 +126,15 @@ server <- function(input, output, session) {
   
   observeEvent(input$send, {
     req(input$user_input)
-    user_msg <- input$user_input
+    msg <- input$user_input
     updateTextInput(session, "user_input", value = "")
     
-    # 1. Add User Message
-    history(c(history(), list(list(role = "user", text = user_msg))))
+    history(c(history(), list(list(role = "user", text = msg))))
+    session$sendCustomMessage("scrollBottom", list())
     
-    # 2. Start an empty bubble for the Agent
-    history(c(history(), list(list(role = "agent", text = ""))))
-    
-    # 3. Stream the response chunks
-    stream <- chat$extract_text(chat$stream(user_msg))
-    full_response <- ""
-    
-    for (chunk in stream) {
-      full_response <- paste0(full_response, chunk)
-      
-      # Update the very last item in history with the growing text
-      curr_hist <- history()
-      curr_hist[[length(curr_hist)]]$text <- full_response
-      history(curr_hist)
-    }
+    response <- tryCatch(chat$chat(msg), error = function(e) "I'm offline right now.")
+    history(c(history(), list(list(role = "agent", text = response))))
+    session$sendCustomMessage("scrollBottom", list())
   })
   
   output$current_view <- renderUI({
@@ -181,7 +162,8 @@ server <- function(input, output, session) {
                   if (m$role == "user") {
                     div(class = "msg-row user", div(class = "msg-bubble user", m$text))
                   } else {
-                    # Render the Markdown (including Bold/Lists) into HTML live
+                    # ── PROPER MARKDOWN RENDERER ──
+                    # This takes the AI's ** text and turns it into clean HTML
                     formatted_html <- HTML(commonmark::markdown_html(m$text))
                     div(class = "msg-row agent", div(class = "msg-bubble agent", formatted_html))
                   }
