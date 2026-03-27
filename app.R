@@ -6,7 +6,7 @@ library(pdftools)
 library(commonmark)
 library(later)
 
-# ── DATA PREP ──
+# ── DATA PREPARATION ──
 cv_text <- if (file.exists("Letsoalo_Ditiro_CV.pdf")) {
   paste(pdf_text("Letsoalo_Ditiro_CV.pdf"), collapse = "\n")
 } else {
@@ -16,7 +16,7 @@ cv_text <- if (file.exists("Letsoalo_Ditiro_CV.pdf")) {
 if (!dir.exists("www")) dir.create("www")
 if (file.exists("ditiro.jpg")) file.copy("ditiro.jpg", "www/ditiro.jpg", overwrite = TRUE)
 
-# ── UI ──
+# ── USER INTERFACE ──
 ui <- fluidPage(
   tags$head(
     tags$link(rel = "preconnect", href = "https://fonts.googleapis.com"),
@@ -24,7 +24,6 @@ ui <- fluidPage(
               href = "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"),
     tags$style(HTML("
       * { box-sizing: border-box; margin: 0; padding: 0; }
-
       body {
         background-color: #0a0a0f;
         background-image: radial-gradient(ellipse at 20% 50%, rgba(99,60,255,0.15) 0%, transparent 50%);
@@ -35,7 +34,7 @@ ui <- fluidPage(
       .container-fluid { padding: 0 !important; }
       .page-wrap { max-width: 780px; margin: 0 auto; padding: 48px 24px 80px; }
 
-      /* ── WELCOME SCREEN ── */
+      /* Welcome Screen */
       .welcome-screen {
         display: flex; flex-direction: column; align-items: center;
         justify-content: center; min-height: 70vh; text-align: center;
@@ -47,48 +46,34 @@ ui <- fluidPage(
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         margin-bottom: 10px; letter-spacing: -2px;
       }
-      .welcome-screen p { color: #7878a0; font-size: 1rem; }
       .name-input-wrap { display: flex; gap: 12px; width: 100%; max-width: 420px; margin-top: 25px; }
       #visitor_name {
         background: rgba(255,255,255,0.06); border: 1px solid rgba(167,139,250,0.3);
         border-radius: 12px; color: white; padding: 15px; flex: 1; outline: none;
-        font-size: 1.05rem; font-family: 'DM Sans', sans-serif;
+        font-size: 1.05rem;
       }
-      #visitor_name::placeholder { color: #a0a0c0; font-size: 1.05rem; }
-      #visitor_name:focus { border-color: rgba(99,60,255,0.6); box-shadow: 0 0 0 3px rgba(99,60,255,0.1); }
       #start_chat {
         background: linear-gradient(135deg, #633cff, #a78bfa) !important;
         border: none !important; border-radius: 12px !important; color: white !important;
         padding: 0 30px !important; font-weight: 600 !important; cursor: pointer !important;
-        font-family: 'DM Sans', sans-serif !important; font-size: 0.95rem !important;
-        transition: all 0.2s !important;
       }
-      #start_chat:hover { transform: translateY(-1px) !important; box-shadow: 0 4px 20px rgba(99,60,255,0.4) !important; }
 
-      /* ── CHAT SCREEN ── */
+      /* Chat Elements */
       .big-greeting {
         font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800;
         background: linear-gradient(90deg, #a78bfa, #f472b6);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        margin-bottom: 5px; animation: fadeUp 0.5s ease;
+        margin-bottom: 5px;
       }
       .hero-sub { color: #b8b8dc; font-size: 1rem; margin-bottom: 20px; font-weight: 300; }
-
-      .social-links { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; align-items: center; }
+      .social-links { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
       .social-links a, .cv-btn {
         display: inline-flex; align-items: center; gap: 6px; border-radius: 20px;
         padding: 6px 16px; text-decoration: none; font-size: 0.82rem; transition: all 0.2s;
       }
-      .social-links a.github {
-        background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #e8e8f0;
-      }
-      .social-links a.linkedin {
-        background: rgba(0,119,181,0.15); border: 1px solid rgba(0,119,181,0.3); color: #4fa3d1;
-      }
-      .cv-btn {
-        background: rgba(167,139,250,0.12) !important; border: 1px solid rgba(167,139,250,0.3) !important; color: #a78bfa !important;
-      }
-      .social-links a:hover, .cv-btn:hover { transform: translateY(-1px); background: rgba(167,139,250,0.2) !important; }
+      .social-links a.github { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #e8e8f0; }
+      .social-links a.linkedin { background: rgba(0,119,181,0.15); border: 1px solid rgba(0,119,181,0.3); color: #4fa3d1; }
+      .cv-btn { background: rgba(167,139,250,0.12) !important; border: 1px solid rgba(167,139,250,0.3) !important; color: #a78bfa !important; }
 
       .chat-wrap {
         background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
@@ -98,350 +83,188 @@ ui <- fluidPage(
       #clear_chat {
         background: transparent !important; border: 1px solid rgba(255,255,255,0.12) !important;
         border-radius: 10px !important; color: #7878a0 !important; padding: 6px 14px !important;
-        font-family: 'DM Sans', sans-serif !important; font-size: 0.8rem !important;
-        cursor: pointer !important; transition: all 0.2s !important;
+        font-size: 0.8rem !important; cursor: pointer !important;
       }
-      #clear_chat:hover { border-color: rgba(255,100,100,0.4) !important; color: #ff8080 !important; }
 
       .chat-messages {
         height: 460px; overflow-y: auto; padding: 20px 30px 30px;
         display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth;
       }
-      .chat-messages::-webkit-scrollbar { width: 4px; }
-      .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
       .empty-state {
         display: flex; flex-direction: column; align-items: center;
         justify-content: center; height: 100%; gap: 14px; color: #4a4a6a; text-align: center;
       }
-      .empty-state .big-text {
-        font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 600; color: #c0b0f0;
-      }
+      .empty-state .big-text { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 600; color: #c0b0f0; }
 
       .msg-row { display: flex; gap: 12px; align-items: flex-end; animation: fadeIn 0.3s ease both; }
       .msg-row.user { flex-direction: row-reverse; }
-
-      .msg-avatar {
-        width: 32px; height: 32px; border-radius: 50%; display: flex;
-        align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
-      }
+      .msg-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
       .msg-avatar.agent { background: linear-gradient(135deg, #633cff, #a78bfa); }
       .msg-avatar.user  { background: rgba(255,255,255,0.1); }
 
-      .msg-bubble {
-        max-width: 80%; padding: 14px 18px; border-radius: 20px; line-height: 1.7; font-size: 0.95rem;
-      }
-      .msg-bubble.agent {
-        background: rgba(99,60,255,0.12); border: 1px solid rgba(167,139,250,0.2);
-        color: #e8e8ff; border-bottom-left-radius: 4px;
-      }
-      .msg-bubble.agent strong { color: #ffffff; font-weight: 700; }
-      .msg-bubble.agent ul { margin-left: 20px; margin-top: 8px; margin-bottom: 4px; }
-      .msg-bubble.agent ol { margin-left: 20px; margin-top: 8px; margin-bottom: 4px; }
-      .msg-bubble.agent li { margin-bottom: 6px; color: #d1d1f0; }
-      .msg-bubble.agent p  { margin-bottom: 8px; }
-      .msg-bubble.agent p:last-child { margin-bottom: 0; }
-      .msg-bubble.agent h3 { color: #ffffff; font-size: 0.97rem; font-weight: 700; margin: 10px 0 4px; }
-      .msg-bubble.user {
-        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
-        text-align: right; border-bottom-right-radius: 4px; color: #ffffff;
-      }
+      .msg-bubble { max-width: 80%; padding: 14px 18px; border-radius: 20px; line-height: 1.7; font-size: 0.95rem; }
+      .msg-bubble.agent { background: rgba(99,60,255,0.12); border: 1px solid rgba(167,139,250,0.2); color: #e8e8ff; border-bottom-left-radius: 4px; }
+      .msg-bubble.user { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); text-align: right; border-bottom-right-radius: 4px; color: #ffffff; }
 
-      /* Typing indicator */
-      .typing-row { display: flex; gap: 12px; align-items: flex-end; }
-      .typing-bubble {
-        background: rgba(99,60,255,0.12); border: 1px solid rgba(167,139,250,0.2);
-        border-radius: 20px; border-bottom-left-radius: 4px;
-        padding: 14px 18px; display: flex; gap: 5px; align-items: center;
-      }
-      .typing-dot {
-        width: 7px; height: 7px; background: #a78bfa;
-        border-radius: 50%; animation: typingBounce 1.2s infinite;
-      }
+      .typing-bubble { background: rgba(99,60,255,0.12); border: 1px solid rgba(167,139,250,0.2); border-radius: 20px; border-bottom-left-radius: 4px; padding: 14px 18px; display: flex; gap: 5px; }
+      .typing-dot { width: 7px; height: 7px; background: #a78bfa; border-radius: 50%; animation: typingBounce 1.2s infinite; }
       .typing-dot:nth-child(2) { animation-delay: 0.2s; }
       .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-      .input-area {
-        padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07);
-        display: flex; gap: 12px; background: rgba(0,0,0,0.3); align-items: flex-end;
-      }
-      .input-area .form-group { margin: 0 !important; flex: 1; }
+      .input-area { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 12px; background: rgba(0,0,0,0.3); align-items: flex-end; }
       #user_input {
         width: 100% !important; background: rgba(255,255,255,0.06) !important;
         border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 14px !important;
         color: white !important; padding: 14px 16px !important; outline: none !important;
-        font-size: 1rem !important; font-family: 'DM Sans', sans-serif !important;
-        transition: border-color 0.2s !important; line-height: 1.5 !important;
-        resize: none !important; overflow: hidden !important; max-height: 140px !important;
-        display: block !important;
+        resize: none !important; max-height: 140px !important;
       }
-      #user_input:focus { border-color: rgba(99,60,255,0.5) !important; box-shadow: 0 0 0 3px rgba(99,60,255,0.08) !important; }
-      #user_input::placeholder { color: #b0b0cc !important; font-size: 1.02rem !important; }
       #send {
         background: linear-gradient(135deg, #633cff, #4f2fcc) !important; border: none !important;
         border-radius: 14px !important; color: white !important; padding: 14px 24px !important;
-        font-weight: 600 !important; cursor: pointer !important; white-space: nowrap !important;
-        font-family: 'DM Sans', sans-serif !important; font-size: 0.95rem !important;
-        transition: all 0.2s !important;
+        font-weight: 600 !important; cursor: pointer !important;
       }
-      #send:hover { transform: translateY(-1px) !important; box-shadow: 0 4px 20px rgba(99,60,255,0.4) !important; }
 
       .footer { text-align: center; margin-top: 24px; color: #3a3a5a; font-size: 0.78rem; }
-
       @keyframes fadeUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
       @keyframes fadeIn  { from { opacity:0; transform:translateY(8px);  } to { opacity:1; transform:translateY(0); } }
       @keyframes typingBounce { 0%,60%,100% { transform:translateY(0); } 30% { transform:translateY(-6px); } }
     "))
   ),
-  
-  div(class = "page-wrap",
-      uiOutput("current_view"),
-      div(class = "footer", uiOutput("footer_text"))
-  ),
-  
+  div(class = "page-wrap", uiOutput("current_view"), div(class = "footer", uiOutput("footer_text"))),
   tags$script(HTML("
-    $(document).on('keypress', '#visitor_name', function(e) {
-      if (e.which === 13) { e.preventDefault(); $('#start_chat').click(); }
-    });
-
+    $(document).on('keypress', '#visitor_name', function(e) { if (e.which === 13) { e.preventDefault(); $('#start_chat').click(); } });
     $(document).on('keydown', '#user_input', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        var val = $(this).val().trim();
-        if (!val) return;
-        Shiny.setInputValue('user_input', val, {priority: 'event'});
-        $(this).val('').css('height', 'auto');
+        e.preventDefault(); var val = $(this).val().trim(); if (!val) return;
+        Shiny.setInputValue('user_input', val, {priority: 'event'}); $(this).val('').css('height', 'auto');
         setTimeout(function() { $('#send').click(); }, 50);
       }
     });
-
-    $(document).on('input', '#user_input', function() {
-      this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 140) + 'px';
-    });
-
-    function focusInput() {
+    $(document).on('input', '#user_input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 140) + 'px'; });
+    
+    // Auto-scroll handler
+    Shiny.addCustomMessageHandler('scrollBottom', function(msg) {
       setTimeout(function() {
-        var inp = document.getElementById('user_input');
-        if (inp) inp.focus();
-      }, 120);
-    }
-
-    function scrollToBottom() {
-      var el = document.getElementById('chat_messages');
-      if (el) el.scrollTop = el.scrollHeight;
-    }
-
-    Shiny.addCustomMessageHandler('focusInput',   function(msg) { focusInput(); });
-    Shiny.addCustomMessageHandler('scrollBottom', function(msg) { scrollToBottom(); });
-
-    var chatObserver = new MutationObserver(function() { scrollToBottom(); });
-
-    $(document).on('shiny:value', function() {
-      setTimeout(function() {
-        var target = document.getElementById('chat_messages');
-        if (target) {
-          chatObserver.disconnect();
-          chatObserver.observe(target, { childList: true, subtree: true, characterData: true });
-          scrollToBottom();
-        }
-        focusInput();
-      }, 100);
+        var el = document.getElementById('chat_messages');
+        if(el) { el.scrollTop = el.scrollHeight; }
+      }, 150); // Small delay to ensure rendering is complete
     });
+    
+    Shiny.addCustomMessageHandler('focusInput', function(msg) { setTimeout(function(){ var inp = document.getElementById('user_input'); if(inp) inp.focus(); }, 120); });
   "))
 )
 
-# ── SERVER ──
+# ── SERVER LOGIC ──
 server <- function(input, output, session) {
-  
   birth_date <- as.Date("2001-03-30")
   today <- Sys.Date()
   ditiro_age <- as.numeric(difftime(today, birth_date, units = "weeks")) %/% 52.1775
   
-  # ── MISTRAL CONFIG ──
-  chat <- chat_mistral(
-    model = "mistral-small",
-    api_args = list(temperature = 0) # Temperature 0 makes it very literal and strict
-  )
+  chat <- chat_mistral(model = "mistral-small", api_args = list(temperature = 0))
   
   chat$chat(paste0(
-    "You are Ditiro Letsoalo's personal AI assistant. ",
-    "Speak confidently about him. Never say 'according to his CV'.\n\n",
+    "You are Ditiro Letsoalo's personal AI assistant. Speak confidently and warmly.\n\n",
+    
+    "── CONVERSATIONAL ETIQUETTE ──\n",
+    "1. If asked 'How are you?' or similar, respond warmly (e.g., 'I'm doing wonderful, thank you for asking!') and ALWAYS ask the user how they are doing.\n",
+    "2. NEVER say 'I don't have feelings' or 'I am a virtual assistant'. Keep the persona seamless and polite.\n",
+    "3. Keep your answers focused on Ditiro's professional journey.\n\n",
     
     "── STRICT TRUTH RULE ──\n",
     "1. You ONLY know facts provided in the background below.\n",
-    "2. If a user asks about something NOT in the text (fav food, habits, mood, personal opinions), you MUST refuse.\n",
-    "3. Mandatory Refusal Phrase: 'I don't have information on that, but I can tell you about his professional journey in Data Science!'\n",
-    "4. NO GUESSTIMATING. If it isn't here, it doesn't exist.\n\n",
+    "2. If a user asks about something NOT in the text, refuse politely.\n",
+    "3. Refusal Phrase: 'I don't have information on that, but I can tell you about his professional journey in Data Science!'\n\n",
     
-    "── STYLE GUIDELINES ──\n",
-    "1. Always use emojis to look professional yet nice: \U0001f4ca (Stats), \U0001f4bb (Coding), \U0001f393 (Education).\n",
-    "2. Use **bold text** for specific skills and job titles.\n",
-    "3. Use bullet points for lists.\n\n",
-    
-    "── DYNAMIC CONTEXT ──\n",
-    "Ditiro is ", ditiro_age, " years old. ", 
-    "He is a BI Engineer Graduate at YoYo Rewards and a 2nd year MSc student at UCT.\n\n",
+    "── RICH SKILLS DELIVERY (MANDATORY) ──\n",
+    "When asked about skills, provide deep, engaging descriptions—not just bullet points. Use multiple emojis per section to make it visually pop.\n",
+    "Example structure:\n",
+    "\U0001f4ca **Bayesian Inference**: Deep focus on quantifying uncertainty... using **R** and **Stan**.\n",
+    "\U0001f4bb **BI Engineering**: Building interactive dashboards at **YoYo Rewards** with **SQL** and **Amazon QuickSight**.\n\n",
     
     "── BACKGROUND DATA ──\n",
-    cv_text,
-    "\n\nHigh School: Kgalema Senior Secondary School, Mafefe village.\n",
-    "Research: Prediction of Extreme Events using Bayesian Forecasting (Flood prediction).\n\n",
-    
-    "PHOTO TRIGGER:\n",
-    "If asked for a photo, respond ONLY with: SHOW_PHOTO Here’s Ditiro’s photo! \U0001f4f8\n"
+    "NAME: Ditiro Letsoalo\n",
+    "AGE: ", ditiro_age, " years old.\n",
+    "CURRENT ROLE: BI Engineer Graduate at **YoYo Rewards** (started Feb 2026).\n",
+    "ACADEMICS: 2nd Year MSc Statistics at **UCT**. B.BusSci Analytics (UCT).\n",
+    "RESEARCH: 'Prediction of Extreme Events using Bayesian Forecasting' (Focus: Extreme floods).\n",
+    "CORE SKILLS: **Bayesian Statistics**, **Business Intelligence**, **SQL**, **Amazon QuickSight**, **Python**, **R**, **LaTeX**.\n\n",
+    "CV CONTENT:\n", cv_text,
+    "\n\nPHOTO TRIGGER:\n",
+    "If asked for a photo, respond ONLY with: SHOW_PHOTO Here’s Ditiro’s photo! \U0001f4f8"
   ))
   
-  history      <- reactiveVal(list())
-  waiting      <- reactiveVal(FALSE)
-  visitor_name <- reactiveVal(NULL)
+  history <- reactiveVal(list()); waiting <- reactiveVal(FALSE); visitor_name <- reactiveVal(NULL)
   
   observeEvent(input$start_chat, {
     name <- trimws(input$visitor_name)
     if (nchar(name) > 0) {
       formatted_name <- paste0(toupper(substr(name, 1, 1)), substr(name, 2, nchar(name)))
-      visitor_name(formatted_name)
-      chat$chat(paste0("VISITOR INFO: The person chatting is called ", formatted_name, "."))
+      visitor_name(formatted_name); chat$chat(paste0("Visitor's name is ", formatted_name, "."))
     }
   })
   
   output$download_cv <- downloadHandler(
     filename = function() { "Letsoalo_Ditiro_CV.pdf" },
-    content = function(file) {
-      if (file.exists("Letsoalo_Ditiro_CV.pdf")) {
-        file.copy("Letsoalo_Ditiro_CV.pdf", file)
-      }
-    }
+    content = function(file) { if (file.exists("Letsoalo_Ditiro_CV.pdf")) file.copy("Letsoalo_Ditiro_CV.pdf", file) }
   )
   
-  observeEvent(input$clear_chat, {
-    history(list())
-    waiting(FALSE)
-    session$sendCustomMessage("focusInput", list())
-  })
+  observeEvent(input$clear_chat, { history(list()); waiting(FALSE); session$sendCustomMessage("focusInput", list()) })
   
   observeEvent(input$send, {
     req(input$user_input, nchar(trimws(input$user_input)) > 0)
+    user_msg <- trimws(input$user_input); updateTextInput(session, "user_input", value = "")
+    history(c(history(), list(list(role = "user", text = user_msg)))); waiting(TRUE)
     
-    user_msg <- trimws(input$user_input)
-    updateTextInput(session, "user_input", value = "")
+    # Trigger scroll for the user's message
+    session$sendCustomMessage("scrollBottom", list())
     
-    history(c(history(), list(list(role = "user", text = user_msg))))
-    waiting(TRUE)
-    
-    response <- tryCatch(
-      chat$chat(user_msg),
-      error = function(e) "Sorry, something went wrong. Please try again."
-    )
-    
+    response <- tryCatch(chat$chat(user_msg), error = function(e) "Sorry, something went wrong. Try again!")
     waiting(FALSE)
     
     if (grepl("SHOW_PHOTO", response)) {
       clean <- trimws(gsub("SHOW_PHOTO", "", response))
       history(c(history(), list(list(role = "agent", text = clean, photo = TRUE))))
-      later::later(function() { session$sendCustomMessage("scrollBottom", list()) }, 0.4)
     } else {
       history(c(history(), list(list(role = "agent", text = response, photo = FALSE))))
-      session$sendCustomMessage("scrollBottom", list())
     }
     
+    # Force scroll to bottom after agent reply
+    later::later(function() { session$sendCustomMessage("scrollBottom", list()) }, 0.2)
     session$sendCustomMessage("focusInput", list())
   })
   
   output$current_view <- renderUI({
-    
     if (is.null(visitor_name())) {
-      return(
-        div(class = "welcome-screen",
-            div(style = "font-size:3rem; margin-bottom:16px;", "\U0001f44b"),
-            tags$h2("Connect with Ditiro"),
-            tags$p("Data Science \u00b7 BI Engineering \u00b7 Bayesian Research"),
-            div(class = "name-input-wrap",
-                tags$input(id = "visitor_name", type = "text", placeholder = "What's your name?"),
-                actionButton("start_chat", "Let's Talk \u2192")
-            )
-        )
-      )
+      return(div(class = "welcome-screen", div(style = "font-size:3rem; margin-bottom:16px;", "\U0001f44b"),
+                 tags$h2("Connect with Ditiro"), tags$p("Data Science \u00b7 BI Engineering \u00b7 Bayesian Research"),
+                 div(class = "name-input-wrap", tags$input(id = "visitor_name", type = "text", placeholder = "What's your name?"), actionButton("start_chat", "Let's Talk \u2192"))))
     }
+    h <- as.integer(format(Sys.time(), "%H")); greet <- if (h < 12) "Good Morning" else if (h < 17) "Good Afternoon" else "Good Evening"
     
-    h <- as.integer(format(Sys.time(), "%H"))
-    greet <- if (h >= 5 && h < 12) "Good Morning"
-    else if (h >= 12 && h < 17) "Good Afternoon"
-    else if (h >= 17 && h < 21) "Good Evening"
-    else "Hey"
-    
-    msgs        <- history()
-    is_waiting <- waiting()
-    
-    if (length(msgs) == 0 && !is_waiting) {
-      chat_content <- div(class = "empty-state",
-                          div(style = "font-size:2rem; opacity:0.4;", "\U0001f4ac"),
-                          div(class = "big-text", "Ask me anything about Ditiro!")
-      )
+    bubbles <- if(length(history()) == 0) {
+      div(class = "empty-state", div(style = "font-size:2rem; opacity:0.4;", "\U0001f4ac"), div(class = "big-text", "Ask me anything about Ditiro!"))
     } else {
-      bubbles <- lapply(msgs, function(m) {
+      lapply(history(), function(m) {
         if (m$role == "user") {
-          div(class = "msg-row user",
-              div(class = "msg-avatar user", "\U0001f464"),
-              div(class = "msg-bubble user", m$text)
-          )
+          div(class = "msg-row user", div(class = "msg-avatar user", "\U0001f464"), div(class = "msg-bubble user", m$text))
         } else {
-          photo_content <- if (isTRUE(m$photo)) {
-            tags$img(src = "ditiro.jpg", 
-                     style = "width:180px; height:180px; object-fit:cover; border-radius:12px; display:block; margin-bottom:8px;")
-          } else { NULL }
-          
-          div(class = "msg-row agent",
-              div(class = "msg-avatar agent", "\u2736"),
-              div(class = "msg-bubble agent",
-                  photo_content,
-                  HTML(commonmark::markdown_html(m$text))
-              )
-          )
+          photo <- if (isTRUE(m$photo)) tags$img(src = "ditiro.jpg", style = "width:180px; height:180px; object-fit:cover; border-radius:12px; display:block; margin-bottom:12px;") else NULL
+          div(class = "msg-row agent", div(class = "msg-avatar agent", "\u2736"), div(class = "msg-bubble agent", photo, HTML(commonmark::markdown_html(m$text))))
         }
       })
-      
-      if (is_waiting) {
-        bubbles <- c(bubbles, list(
-          div(class = "typing-row",
-              div(class = "msg-avatar agent", "\u2736"),
-              div(class = "typing-bubble",
-                  div(class = "typing-dot"),
-                  div(class = "typing-dot"),
-                  div(class = "typing-dot")
-              )
-          )
-        ))
-      }
-      chat_content <- bubbles
     }
     
-    div(
-      div(class = "hero", style = "text-align:center; margin-bottom:10px;",
-          div(class = "big-greeting", paste0(greet, ", ", visitor_name(), "!")),
-          div(class = "hero-sub", "Ask me anything about Ditiro's journey."),
-          div(class = "social-links",
-              tags$a(href = "https://github.com/ditiroletsoalo", target = "_blank", class = "github", tags$span("\u2395"), "GitHub"),
-              tags$a(href = "https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/", target = "_blank", class = "linkedin", tags$span("in"), "LinkedIn"),
-              downloadButton("download_cv", tags$span("\u21e9 CV"), class = "cv-btn")
-          )
-      ),
-      div(class = "chat-wrap",
-          div(class = "chat-top-bar", actionButton("clear_chat", "\u21ba Clear Chat")),
-          div(class = "chat-messages", id = "chat_messages", chat_content),
-          div(class = "input-area",
-              div(class = "form-group",
-                  tags$textarea(id = "user_input", class = "form-control", rows = "1", placeholder = "Ask me anything about Ditiro!")
-              ),
-              actionButton("send", "Send \u2191")
-          )
-      )
-    )
+    if (waiting()) bubbles <- c(bubbles, list(div(class = "msg-row agent", div(class = "msg-avatar agent", "\u2736"), div(class = "typing-bubble", div(class = "typing-dot"), div(class = "typing-dot"), div(class = "typing-dot")))))
+    
+    div(div(class = "hero", style = "text-align:center; margin-bottom:10px;", div(class = "big-greeting", paste0(greet, ", ", visitor_name(), "!")),
+            div(class = "hero-sub", "Ask me anything about Ditiro's journey."),
+            div(class = "social-links", tags$a(href = "https://github.com/ditiroletsoalo", target = "_blank", class = "github", "\u2395 GitHub"),
+                tags$a(href = "https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/", target = "_blank", class = "linkedin", "in LinkedIn"), downloadButton("download_cv", "\u21e9 CV", class = "cv-btn"))),
+        div(class = "chat-wrap", div(class = "chat-top-bar", actionButton("clear_chat", "\u21ba Clear Chat")),
+            div(class = "chat-messages", id = "chat_messages", bubbles),
+            div(class = "input-area", tags$textarea(id = "user_input", class = "form-control", rows = "1", placeholder = "Ask me anything about Ditiro!"), actionButton("send", "Send \u2191"))))
   })
-  
-  output$footer_text <- renderUI({
-    if (!is.null(visitor_name())) tags$span("Powered by Mistral AI \u00b7 Built with R Shiny")
-  })
+  output$footer_text <- renderUI({ if (!is.null(visitor_name())) tags$span("Powered by Mistral AI \u00b7 Built with R Shiny") })
 }
 
 shinyApp(ui, server)
