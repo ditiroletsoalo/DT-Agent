@@ -147,7 +147,7 @@ ui <- fluidPage(
       setTimeout(function() {
         var el = document.getElementById('chat_messages');
         if(el) { el.scrollTop = el.scrollHeight; }
-      }, 150); // Small delay to ensure rendering is complete
+      }, 150); 
     });
     
     Shiny.addCustomMessageHandler('focusInput', function(msg) { setTimeout(function(){ var inp = document.getElementById('user_input'); if(inp) inp.focus(); }, 120); });
@@ -167,8 +167,9 @@ server <- function(input, output, session) {
     
     "── CONVERSATIONAL ETIQUETTE ──\n",
     "1. If asked 'How are you?' or similar, respond warmly (e.g., 'I'm doing wonderful, thank you for asking!') and ALWAYS ask the user how they are doing.\n",
-    "2. NEVER say 'I don't have feelings' or 'I am a virtual assistant'. Keep the persona seamless and polite.\n",
-    "3. Keep your answers focused on Ditiro's professional journey.\n\n",
+    "2. If asked about the user or their name, respond by explicitly mentioning the user's name. Mention details they have told you about themselves during this conversation, but do NOT confuse this with Ditiro's professional background.\n",
+    "3. NEVER say 'I don't have feelings' or 'I am a virtual assistant'. Keep the persona seamless and polite.\n",
+    "4. Keep your answers focused on Ditiro's professional journey.\n\n",
     
     "── STRICT TRUTH RULE ──\n",
     "1. You ONLY know facts provided in the background below.\n",
@@ -199,7 +200,16 @@ server <- function(input, output, session) {
     name <- trimws(input$visitor_name)
     if (nchar(name) > 0) {
       formatted_name <- paste0(toupper(substr(name, 1, 1)), substr(name, 2, nchar(name)))
-      visitor_name(formatted_name); chat$chat(paste0("Visitor's name is ", formatted_name, "."))
+      visitor_name(formatted_name)
+      
+      # Immediate Greeting Logic
+      waiting(TRUE)
+      response <- chat$chat(paste0("Visitor's name is ", formatted_name, ". Greet them warmly and ask how they are doing today."))
+      waiting(FALSE)
+      
+      # Add greeting to history immediately
+      history(c(history(), list(list(role = "agent", text = response, photo = FALSE))))
+      session$sendCustomMessage("scrollBottom", list())
     }
   })
   
@@ -215,7 +225,6 @@ server <- function(input, output, session) {
     user_msg <- trimws(input$user_input); updateTextInput(session, "user_input", value = "")
     history(c(history(), list(list(role = "user", text = user_msg)))); waiting(TRUE)
     
-    # Trigger scroll for the user's message
     session$sendCustomMessage("scrollBottom", list())
     
     response <- tryCatch(chat$chat(user_msg), error = function(e) "Sorry, something went wrong. Try again!")
@@ -228,7 +237,6 @@ server <- function(input, output, session) {
       history(c(history(), list(list(role = "agent", text = response, photo = FALSE))))
     }
     
-    # Force scroll to bottom after agent reply
     later::later(function() { session$sendCustomMessage("scrollBottom", list()) }, 0.2)
     session$sendCustomMessage("focusInput", list())
   })
