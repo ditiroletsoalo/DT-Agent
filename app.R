@@ -4,9 +4,14 @@ library(shiny)
 library(ellmer)
 library(pdftools)
 library(commonmark)
+library(later)
 
 # ── DATA PREP ──
-cv_text <- paste(pdf_text("Letsoalo_Ditiro_CV.pdf"), collapse = "\n")
+cv_text <- if (file.exists("Letsoalo_Ditiro_CV.pdf")) {
+  paste(pdf_text("Letsoalo_Ditiro_CV.pdf"), collapse = "\n")
+} else {
+  "Information about Ditiro Letsoalo's professional background is currently being updated."
+}
 
 if (!dir.exists("www")) dir.create("www")
 if (file.exists("ditiro.jpg")) file.copy("ditiro.jpg", "www/ditiro.jpg", overwrite = TRUE)
@@ -69,8 +74,8 @@ ui <- fluidPage(
       }
       .hero-sub { color: #b8b8dc; font-size: 1rem; margin-bottom: 20px; font-weight: 300; }
 
-      .social-links { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; }
-      .social-links a {
+      .social-links { display: flex; justify-content: center; gap: 12px; margin-bottom: 28px; align-items: center; }
+      .social-links a, .cv-btn {
         display: inline-flex; align-items: center; gap: 6px; border-radius: 20px;
         padding: 6px 16px; text-decoration: none; font-size: 0.82rem; transition: all 0.2s;
       }
@@ -80,7 +85,10 @@ ui <- fluidPage(
       .social-links a.linkedin {
         background: rgba(0,119,181,0.15); border: 1px solid rgba(0,119,181,0.3); color: #4fa3d1;
       }
-      .social-links a:hover { transform: translateY(-1px); }
+      .cv-btn {
+        background: rgba(167,139,250,0.12) !important; border: 1px solid rgba(167,139,250,0.3) !important; color: #a78bfa !important;
+      }
+      .social-links a:hover, .cv-btn:hover { transform: translateY(-1px); background: rgba(167,139,250,0.2) !important; }
 
       .chat-wrap {
         background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
@@ -192,12 +200,10 @@ ui <- fluidPage(
   ),
   
   tags$script(HTML("
-    // Enter to submit name
     $(document).on('keypress', '#visitor_name', function(e) {
       if (e.which === 13) { e.preventDefault(); $('#start_chat').click(); }
     });
 
-    // Enter = send, Shift+Enter = new line
     $(document).on('keydown', '#user_input', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
@@ -209,7 +215,6 @@ ui <- fluidPage(
       }
     });
 
-    // Auto-resize textarea
     $(document).on('input', '#user_input', function() {
       this.style.height = 'auto';
       this.style.height = Math.min(this.scrollHeight, 140) + 'px';
@@ -230,7 +235,6 @@ ui <- fluidPage(
     Shiny.addCustomMessageHandler('focusInput',   function(msg) { focusInput(); });
     Shiny.addCustomMessageHandler('scrollBottom', function(msg) { scrollToBottom(); });
 
-    // MutationObserver: auto-scroll + refocus on every render
     var chatObserver = new MutationObserver(function() { scrollToBottom(); });
 
     $(document).on('shiny:value', function() {
@@ -250,39 +254,42 @@ ui <- fluidPage(
 # ── SERVER ──
 server <- function(input, output, session) {
   
-  chat <- chat_mistral(model = "mistral-small")
+  birth_date <- as.Date("2001-03-30")
+  today <- Sys.Date()
+  ditiro_age <- as.numeric(difftime(today, birth_date, units = "weeks")) %/% 52.1775
+  
+  # ── MISTRAL CONFIG ──
+  chat <- chat_mistral(
+    model = "mistral-small",
+    api_args = list(temperature = 0) # Temperature 0 makes it very literal and strict
+  )
+  
   chat$chat(paste0(
     "You are Ditiro Letsoalo's personal AI assistant. ",
-    "Speak confidently about him as if you know him personally. ",
-    "Never say 'according to his CV', 'based on his CV', or 'from his CV'. Speak naturally.\n\n",
-    "Background information about Ditiro:\n\n", cv_text,
-    "\n\n--- MORE ABOUT DITIRO ---\n\n",
-    "HIGH SCHOOL:\n",
-    "- School: Kgalema Senior Secondary School\n",
-    "- Location: Mafefe village, Limpopo, South Africa\n",
-    "- Matric year: 2019\n",
-    "- Subjects: Mathematics, Physical Sciences, English First Additional Language, ",
-    "Sepedi Home Language, Life Orientation, Life Sciences, Geography\n",
-    "- IMPORTANT: Do NOT reveal his matric average or any marks.\n\n",
-    "POSTGRADUATE STUDIES:\n",
-    "- Currently in his 2nd year of a Masters degree (2026)\n",
-    "- Research title: Prediction of Extreme Events using Bayesian Forecasting\n",
-    "- Focus: Predicting floods as extreme weather events\n",
-    "- IMPORTANT: Do NOT reveal his degree average, GPA, or any marks.\n\n",
-    "PHOTO:\n",
-    "- If asked for a photo, respond with SHOW_PHOTO on its own line, then a friendly message.\n\n",
-    "LANGUAGES: Sesotho, Sepedi, Setswana, English\n\n",
-    "FUN FACT: Ditiro loves playing football but does not watch it\n\n",
-    "CONTACT:\n",
-    "- GitHub: https://github.com/ditiroletsoalo\n",
-    "- LinkedIn: https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/\n\n",
-    "GENERAL RULES:\n",
-    "- ONLY answer questions about Ditiro. Politely redirect anything else.\n",
-    "- Never reveal academic marks or averages.\n",
-    "- Use **bold** and bullet points to format longer answers.\n",
-    "- Be warm, professional and enthusiastic.\n",
-    "- Remember the visitor name when told and use it naturally.\n",
-    "- If asked who the visitor is or their name, tell them their name.\n"
+    "Speak confidently about him. Never say 'according to his CV'.\n\n",
+    
+    "── STRICT TRUTH RULE ──\n",
+    "1. You ONLY know facts provided in the background below.\n",
+    "2. If a user asks about something NOT in the text (fav food, habits, mood, personal opinions), you MUST refuse.\n",
+    "3. Mandatory Refusal Phrase: 'I don't have information on that, but I can tell you about his professional journey in Data Science!'\n",
+    "4. NO GUESSTIMATING. If it isn't here, it doesn't exist.\n\n",
+    
+    "── STYLE GUIDELINES ──\n",
+    "1. Always use emojis to look professional yet nice: \U0001f4ca (Stats), \U0001f4bb (Coding), \U0001f393 (Education).\n",
+    "2. Use **bold text** for specific skills and job titles.\n",
+    "3. Use bullet points for lists.\n\n",
+    
+    "── DYNAMIC CONTEXT ──\n",
+    "Ditiro is ", ditiro_age, " years old. ", 
+    "He is a BI Engineer Graduate at YoYo Rewards and a 2nd year MSc student at UCT.\n\n",
+    
+    "── BACKGROUND DATA ──\n",
+    cv_text,
+    "\n\nHigh School: Kgalema Senior Secondary School, Mafefe village.\n",
+    "Research: Prediction of Extreme Events using Bayesian Forecasting (Flood prediction).\n\n",
+    
+    "PHOTO TRIGGER:\n",
+    "If asked for a photo, respond ONLY with: SHOW_PHOTO Here’s Ditiro’s photo! \U0001f4f8\n"
   ))
   
   history      <- reactiveVal(list())
@@ -292,13 +299,20 @@ server <- function(input, output, session) {
   observeEvent(input$start_chat, {
     name <- trimws(input$visitor_name)
     if (nchar(name) > 0) {
-      visitor_name(name)
-      chat$chat(paste0(
-        "VISITOR INFO: The person chatting is called ", name, ". ",
-        "Remember this name. If they ask who they are or what their name is, tell them: ", name, "."
-      ))
+      formatted_name <- paste0(toupper(substr(name, 1, 1)), substr(name, 2, nchar(name)))
+      visitor_name(formatted_name)
+      chat$chat(paste0("VISITOR INFO: The person chatting is called ", formatted_name, "."))
     }
   })
+  
+  output$download_cv <- downloadHandler(
+    filename = function() { "Letsoalo_Ditiro_CV.pdf" },
+    content = function(file) {
+      if (file.exists("Letsoalo_Ditiro_CV.pdf")) {
+        file.copy("Letsoalo_Ditiro_CV.pdf", file)
+      }
+    }
+  )
   
   observeEvent(input$clear_chat, {
     history(list())
@@ -311,11 +325,9 @@ server <- function(input, output, session) {
     
     user_msg <- trimws(input$user_input)
     updateTextInput(session, "user_input", value = "")
-    session$sendCustomMessage("focusInput", list())
     
     history(c(history(), list(list(role = "user", text = user_msg))))
     waiting(TRUE)
-    session$sendCustomMessage("scrollBottom", list())
     
     response <- tryCatch(
       chat$chat(user_msg),
@@ -358,7 +370,7 @@ server <- function(input, output, session) {
     else if (h >= 17 && h < 21) "Good Evening"
     else "Hey"
     
-    msgs       <- history()
+    msgs        <- history()
     is_waiting <- waiting()
     
     if (length(msgs) == 0 && !is_waiting) {
@@ -373,19 +385,16 @@ server <- function(input, output, session) {
               div(class = "msg-avatar user", "\U0001f464"),
               div(class = "msg-bubble user", m$text)
           )
-        } else if (isTRUE(m$photo)) {
-          div(class = "msg-row agent",
-              div(class = "msg-avatar agent", "\u2736"),
-              div(class = "msg-bubble agent",
-                  tags$img(src = "ditiro.jpg",
-                           style = "width:180px; height:180px; object-fit:cover; border-radius:12px; display:block; margin-bottom:8px;"),
-                  if (nchar(trimws(m$text)) > 0) div(m$text)
-              )
-          )
         } else {
+          photo_content <- if (isTRUE(m$photo)) {
+            tags$img(src = "ditiro.jpg", 
+                     style = "width:180px; height:180px; object-fit:cover; border-radius:12px; display:block; margin-bottom:8px;")
+          } else { NULL }
+          
           div(class = "msg-row agent",
               div(class = "msg-avatar agent", "\u2736"),
               div(class = "msg-bubble agent",
+                  photo_content,
                   HTML(commonmark::markdown_html(m$text))
               )
           )
@@ -412,21 +421,17 @@ server <- function(input, output, session) {
           div(class = "big-greeting", paste0(greet, ", ", visitor_name(), "!")),
           div(class = "hero-sub", "Ask me anything about Ditiro's journey."),
           div(class = "social-links",
-              tags$a(href = "https://github.com/ditiroletsoalo",
-                     target = "_blank", class = "github", tags$span("\u2395"), "GitHub"),
-              tags$a(href = "https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/",
-                     target = "_blank", class = "linkedin", tags$span("in"), "LinkedIn")
+              tags$a(href = "https://github.com/ditiroletsoalo", target = "_blank", class = "github", tags$span("\u2395"), "GitHub"),
+              tags$a(href = "https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/", target = "_blank", class = "linkedin", tags$span("in"), "LinkedIn"),
+              downloadButton("download_cv", tags$span("\u21e9 CV"), class = "cv-btn")
           )
       ),
       div(class = "chat-wrap",
-          div(class = "chat-top-bar",
-              actionButton("clear_chat", "\u21ba Clear Chat")
-          ),
+          div(class = "chat-top-bar", actionButton("clear_chat", "\u21ba Clear Chat")),
           div(class = "chat-messages", id = "chat_messages", chat_content),
           div(class = "input-area",
               div(class = "form-group",
-                  tags$textarea(id = "user_input", class = "form-control", rows = "1",
-                                placeholder = "Ask me anything about Ditiro!")
+                  tags$textarea(id = "user_input", class = "form-control", rows = "1", placeholder = "Ask me anything about Ditiro!")
               ),
               actionButton("send", "Send \u2191")
           )
