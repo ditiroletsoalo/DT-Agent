@@ -244,10 +244,10 @@ server <- function(input, output, session) {
   output$current_view <- renderUI({
     if (is.null(visitor_name())) {
       return(div(class = "welcome-screen", div(style = "font-size:3rem; margin-bottom:16px;", "\U0001f44b"),
-                 tags$h2("Connect with Ditiro"), tags$p("Data Science \u00b7 BI Engineering \u00b7 Bayesian Research"),
+                 tags$h2("Connect with Ditiro"), tags$p("BI Engineer @ Yoyo | MSc Candidate (UCT)"),
                  div(class = "name-input-wrap", tags$input(id = "visitor_name", type = "text", placeholder = "What's your name?"), actionButton("start_chat", "Let's Talk \u2192"))))
     }
-    h <- as.integer(format(Sys.time(), "%H")); greet <- if (h < 12) "Good Morning" else if (h < 17) "Good Afternoon" else "Good Evening"
+    h <- as.integer(format(Sys.time(), "%H")); greet <- if (h>3 & h < 12) "Good Morning" else if (h>11 & h < 17) "Good Afternoon" else if (h>16 & h<12) "Good Evening" else "Hey"
     
     bubbles <- if(length(history()) == 0) {
       div(class = "empty-state", div(style = "font-size:2rem; opacity:0.4;", "\U0001f4ac"), div(class = "big-text", "Ask me anything about Ditiro!"))
