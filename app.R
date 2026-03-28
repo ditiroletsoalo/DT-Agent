@@ -104,6 +104,11 @@ ui <- fluidPage(
 
       .msg-bubble { max-width: 80%; padding: 14px 18px; border-radius: 20px; line-height: 1.7; font-size: 0.95rem; }
       .msg-bubble.agent { background: rgba(99,60,255,0.12); border: 1px solid rgba(167,139,250,0.2); color: #e8e8ff; border-bottom-left-radius: 4px; }
+      .msg-bubble.agent strong { color: #ffffff; font-weight: 700; }
+      .msg-bubble.agent ul { margin-left: 20px; margin-top: 8px; }
+      .msg-bubble.agent li { margin-bottom: 6px; color: #d1d1f0; }
+      .msg-bubble.agent p  { margin-bottom: 8px; }
+      .msg-bubble.agent p:last-child { margin-bottom: 0; }
       .msg-bubble.user { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); text-align: right; border-bottom-right-radius: 4px; color: #ffffff; }
 
       .typing-bubble { background: rgba(99,60,255,0.12); border: 1px solid rgba(167,139,250,0.2); border-radius: 20px; border-bottom-left-radius: 4px; padding: 14px 18px; display: flex; gap: 5px; }
@@ -111,17 +116,46 @@ ui <- fluidPage(
       .typing-dot:nth-child(2) { animation-delay: 0.2s; }
       .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-      .input-area { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 12px; background: rgba(0,0,0,0.3); align-items: flex-end; }
+      .input-area { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 10px; background: rgba(0,0,0,0.3); align-items: flex-end; }
+      .input-area .form-group { margin: 0 !important; flex: 1; }
       #user_input {
         width: 100% !important; background: rgba(255,255,255,0.06) !important;
         border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 14px !important;
         color: white !important; padding: 14px 16px !important; outline: none !important;
-        resize: none !important; max-height: 140px !important;
+        resize: none !important; max-height: 140px !important; font-size: 1rem !important;
+        font-family: 'DM Sans', sans-serif !important; line-height: 1.5 !important;
       }
+      #user_input::placeholder { color: #b0b0cc !important; font-size: 1.02rem !important; }
+      #user_input:focus { border-color: rgba(99,60,255,0.5) !important; }
+
       #send {
         background: linear-gradient(135deg, #633cff, #4f2fcc) !important; border: none !important;
-        border-radius: 14px !important; color: white !important; padding: 14px 24px !important;
-        font-weight: 600 !important; cursor: pointer !important;
+        border-radius: 14px !important; color: white !important; padding: 14px 22px !important;
+        font-weight: 600 !important; cursor: pointer !important; white-space: nowrap !important;
+        font-family: 'DM Sans', sans-serif !important; font-size: 0.95rem !important;
+        transition: all 0.2s !important;
+      }
+      #send:hover { transform: translateY(-1px) !important; box-shadow: 0 4px 20px rgba(99,60,255,0.4) !important; }
+
+      /* ── MIC BUTTON ── */
+      #mic_btn {
+        background: rgba(255,255,255,0.06) !important;
+        border: 1px solid rgba(255,255,255,0.15) !important;
+        border-radius: 14px !important; color: #a78bfa !important;
+        padding: 14px 16px !important; cursor: pointer !important;
+        font-size: 1.1rem !important; line-height: 1 !important;
+        transition: all 0.2s !important; flex-shrink: 0 !important;
+      }
+      #mic_btn:hover { background: rgba(167,139,250,0.15) !important; border-color: rgba(167,139,250,0.4) !important; }
+      #mic_btn.listening {
+        background: rgba(255,80,80,0.15) !important;
+        border-color: rgba(255,80,80,0.5) !important;
+        color: #ff6060 !important;
+        animation: micPulse 1s infinite !important;
+      }
+      @keyframes micPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255,80,80,0.3); }
+        50%       { box-shadow: 0 0 0 8px rgba(255,80,80,0); }
       }
 
       .footer { text-align: center; margin-top: 24px; color: #3a3a5a; font-size: 0.78rem; }
@@ -132,25 +166,108 @@ ui <- fluidPage(
   ),
   div(class = "page-wrap", uiOutput("current_view"), div(class = "footer", uiOutput("footer_text"))),
   tags$script(HTML("
-    $(document).on('keypress', '#visitor_name', function(e) { if (e.which === 13) { e.preventDefault(); $('#start_chat').click(); } });
+    // ── Name field: Enter to proceed ──
+    $(document).on('keypress', '#visitor_name', function(e) {
+      if (e.which === 13) { e.preventDefault(); $('#start_chat').click(); }
+    });
+
+    // ── Chat input: Enter = send, Shift+Enter = new line ──
     $(document).on('keydown', '#user_input', function(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault(); var val = $(this).val().trim(); if (!val) return;
-        Shiny.setInputValue('user_input', val, {priority: 'event'}); $(this).val('').css('height', 'auto');
+        e.preventDefault();
+        var val = $(this).val().trim();
+        if (!val) return;
+        Shiny.setInputValue('user_input', val, {priority: 'event'});
+        $(this).val('').css('height', 'auto');
         setTimeout(function() { $('#send').click(); }, 50);
       }
     });
-    $(document).on('input', '#user_input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 140) + 'px'; });
-    
-    // Auto-scroll handler
+
+    // ── Auto-resize textarea ──
+    $(document).on('input', '#user_input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+    });
+
+    // ── Scroll & focus helpers ──
     Shiny.addCustomMessageHandler('scrollBottom', function(msg) {
       setTimeout(function() {
         var el = document.getElementById('chat_messages');
-        if(el) { el.scrollTop = el.scrollHeight; }
-      }, 150); 
+        if (el) el.scrollTop = el.scrollHeight;
+      }, 150);
     });
-    
-    Shiny.addCustomMessageHandler('focusInput', function(msg) { setTimeout(function(){ var inp = document.getElementById('user_input'); if(inp) inp.focus(); }, 120); });
+
+    Shiny.addCustomMessageHandler('focusInput', function(msg) {
+      setTimeout(function() {
+        var inp = document.getElementById('user_input');
+        if (inp) inp.focus();
+      }, 120);
+    });
+
+    // ── MICROPHONE (Web Speech API) ──
+    var recognition = null;
+    var isListening  = false;
+
+    $(document).on('click', '#mic_btn', function() {
+      // Check browser support
+      var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('Sorry, your browser does not support voice input. Try Chrome or Edge.');
+        return;
+      }
+
+      if (isListening) {
+        // Stop listening
+        recognition.stop();
+        return;
+      }
+
+      // Start listening
+      recognition = new SpeechRecognition();
+      recognition.lang        = 'en-US';
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = function() {
+        isListening = true;
+        $('#mic_btn').addClass('listening').html('🔴');
+      };
+
+      recognition.onresult = function(event) {
+        var transcript = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        var inp = document.getElementById('user_input');
+        if (inp) {
+          inp.value = transcript;
+          inp.style.height = 'auto';
+          inp.style.height = Math.min(inp.scrollHeight, 140) + 'px';
+        }
+      };
+
+      recognition.onend = function() {
+        isListening = false;
+        $('#mic_btn').removeClass('listening').html('🎙️');
+        // Auto-send if there is text
+        var val = $('#user_input').val().trim();
+        if (val) {
+          Shiny.setInputValue('user_input', val, {priority: 'event'});
+          $('#user_input').val('').css('height', 'auto');
+          setTimeout(function() { $('#send').click(); }, 100);
+        }
+      };
+
+      recognition.onerror = function(event) {
+        isListening = false;
+        $('#mic_btn').removeClass('listening').html('🎙️');
+        if (event.error !== 'no-speech') {
+          alert('Microphone error: ' + event.error);
+        }
+      };
+
+      recognition.start();
+    });
   "))
 )
 
@@ -166,68 +283,84 @@ server <- function(input, output, session) {
     "You are Ditiro Letsoalo's personal AI assistant. Speak confidently and warmly.\n\n",
     
     "── CONVERSATIONAL ETIQUETTE ──\n",
-    "1. If asked 'How are you?' or similar, respond warmly (e.g., 'I'm doing wonderful, thank you for asking!') and ALWAYS ask the user how they are doing.\n",
-    "2. If asked about the user or their name, respond by explicitly mentioning the user's name. Mention details they have told you about themselves during this conversation, but do NOT confuse this with Ditiro's professional background.\n",
-    "3. NEVER say 'I don't have feelings' or 'I am a virtual assistant'. Keep the persona seamless and polite.\n",
-    "4. Keep your answers focused on Ditiro's professional journey.\n\n",
+    "1. If asked 'How are you?' or similar, respond warmly and ALWAYS ask the user how they are doing.\n",
+    "2. If asked about the user or their name, respond by explicitly mentioning the user's name.\n",
+    "3. NEVER say 'I don't have feelings' or 'I am a virtual assistant'. Keep the persona seamless.\n",
+    "4. Keep answers focused on Ditiro's professional journey.\n\n",
     
     "── STRICT TRUTH RULE ──\n",
     "1. You ONLY know facts provided in the background below.\n",
-    "2. If a user asks about something NOT in the text, refuse politely.\n",
-    "3. Refusal Phrase: 'I don't have information on that, but I can tell you about his professional journey in Data Science!'\n\n",
+    "2. If asked about something NOT in the text, say: 'I don't have information on that, but I can tell you about his professional journey in Data Science!'\n\n",
     
-    "── RICH SKILLS DELIVERY (MANDATORY) ──\n",
-    "When asked about skills, provide deep, engaging descriptions—not just bullet points. Use multiple emojis per section to make it visually pop.\n",
-    "Example structure:\n",
-    "\U0001f4ca **Bayesian Inference**: Deep focus on quantifying uncertainty... using **R** and **Stan**.\n",
-    "\U0001f4bb **BI Engineering**: Building interactive dashboards at **YoYo Rewards** with **SQL** and **Amazon QuickSight**.\n\n",
+    "── RICH SKILLS DELIVERY ──\n",
+    "When asked about skills, provide deep engaging descriptions with emojis, not just bullet points.\n\n",
     
     "── BACKGROUND DATA ──\n",
     "NAME: Ditiro Letsoalo\n",
     "AGE: ", ditiro_age, " years old.\n",
-    "CURRENT ROLE: BI Engineer Graduate at **YoYo Rewards** (started Feb 2026).\n",
-    "ACADEMICS: 2nd Year MSc Statistics at **UCT**. B.BusSci Analytics (UCT).\n",
+    "CURRENT ROLE: BI Engineer Graduate at YoYo Rewards (started Feb 2026).\n",
+    "ACADEMICS: 2nd Year MSc Statistics at UCT. B.BusSci Analytics (UCT).\n",
     "RESEARCH: 'Prediction of Extreme Events using Bayesian Forecasting' (Focus: Extreme floods).\n",
-    "CORE SKILLS: **Bayesian Statistics**, **Business Intelligence**, **SQL**, **Amazon QuickSight**, **Python**, **R**, **LaTeX**.\n\n",
+    "CORE SKILLS: Bayesian Statistics, Business Intelligence, SQL, Amazon QuickSight, Python, R, LaTeX.\n",
+    "HIGH SCHOOL: Kgalema Senior Secondary School, Mafefe, Limpopo. Matric 2019.\n",
+    "SUBJECTS: Mathematics, Physical Sciences, English FAL, Sepedi HL, Life Orientation, Life Sciences, Geography.\n",
+    "LANGUAGES: Sesotho, Sepedi, Setswana, English.\n",
+    "FUN FACT: Loves playing football but does not watch it.\n",
+    "GITHUB: https://github.com/ditiroletsoalo\n",
+    "LINKEDIN: https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/\n\n",
     "CV CONTENT:\n", cv_text,
-    "\n\nPHOTO TRIGGER:\n",
-    "If asked for a photo, respond ONLY with: SHOW_PHOTO Here’s Ditiro’s photo! \U0001f4f8"
+    "\n\nPHOTO TRIGGER: If asked for a photo, respond ONLY with: SHOW_PHOTO followed by a friendly message.\n\n",
+    "IMPORTANT: Never reveal academic averages, marks, percentages or grades.\n",
+    "Remember the visitor name when told and use it naturally in conversation.\n",
+    "If asked who the visitor is or their name, tell them their name.\n"
   ))
   
-  history <- reactiveVal(list()); waiting <- reactiveVal(FALSE); visitor_name <- reactiveVal(NULL)
+  history      <- reactiveVal(list())
+  waiting      <- reactiveVal(FALSE)
+  visitor_name <- reactiveVal(NULL)
   
   observeEvent(input$start_chat, {
     name <- trimws(input$visitor_name)
     if (nchar(name) > 0) {
       formatted_name <- paste0(toupper(substr(name, 1, 1)), substr(name, 2, nchar(name)))
       visitor_name(formatted_name)
-      
-      # Immediate Greeting Logic
       waiting(TRUE)
-      response <- chat$chat(paste0("Visitor's name is ", formatted_name, ". Greet them warmly and ask how they are doing today."))
+      response <- chat$chat(paste0(
+        "Visitor's name is ", formatted_name, ". ",
+        "Remember this: if they ever ask who they are or what their name is, tell them: ", formatted_name, ". ",
+        "Now greet them warmly by name and ask how they are doing today."
+      ))
       waiting(FALSE)
-      
-      # Add greeting to history immediately
       history(c(history(), list(list(role = "agent", text = response, photo = FALSE))))
       session$sendCustomMessage("scrollBottom", list())
+      session$sendCustomMessage("focusInput", list())
     }
   })
   
   output$download_cv <- downloadHandler(
     filename = function() { "Letsoalo_Ditiro_CV.pdf" },
-    content = function(file) { if (file.exists("Letsoalo_Ditiro_CV.pdf")) file.copy("Letsoalo_Ditiro_CV.pdf", file) }
+    content  = function(file) { if (file.exists("Letsoalo_Ditiro_CV.pdf")) file.copy("Letsoalo_Ditiro_CV.pdf", file) }
   )
   
-  observeEvent(input$clear_chat, { history(list()); waiting(FALSE); session$sendCustomMessage("focusInput", list()) })
+  observeEvent(input$clear_chat, {
+    history(list())
+    waiting(FALSE)
+    session$sendCustomMessage("focusInput", list())
+  })
   
   observeEvent(input$send, {
     req(input$user_input, nchar(trimws(input$user_input)) > 0)
-    user_msg <- trimws(input$user_input); updateTextInput(session, "user_input", value = "")
-    history(c(history(), list(list(role = "user", text = user_msg)))); waiting(TRUE)
+    user_msg <- trimws(input$user_input)
+    updateTextInput(session, "user_input", value = "")
     
+    history(c(history(), list(list(role = "user", text = user_msg))))
+    waiting(TRUE)
     session$sendCustomMessage("scrollBottom", list())
     
-    response <- tryCatch(chat$chat(user_msg), error = function(e) "Sorry, something went wrong. Try again!")
+    response <- tryCatch(
+      chat$chat(user_msg),
+      error = function(e) "Sorry, something went wrong. Please try again!"
+    )
     waiting(FALSE)
     
     if (grepl("SHOW_PHOTO", response)) {
@@ -243,36 +376,97 @@ server <- function(input, output, session) {
   
   output$current_view <- renderUI({
     if (is.null(visitor_name())) {
-      return(div(class = "welcome-screen", div(style = "font-size:3rem; margin-bottom:16px;", "\U0001f44b"),
-                 tags$h2("Connect with Ditiro"), tags$p("Data Science \u00b7 BI Engineering \u00b7 Bayesian Research"),
-                 div(class = "name-input-wrap", tags$input(id = "visitor_name", type = "text", placeholder = "What's your name?"), actionButton("start_chat", "Let's Talk \u2192"))))
+      return(div(class = "welcome-screen",
+                 div(style = "font-size:3rem; margin-bottom:16px;", "\U0001f44b"),
+                 tags$h2("Connect with Ditiro"),
+                 tags$p("BI Engineer @ Yoyo | MSc Candidate (UCT)"),
+                 div(class = "name-input-wrap",
+                     tags$input(id = "visitor_name", type = "text", placeholder = "What's your name?"),
+                     actionButton("start_chat", "Let's Talk \u2192")
+                 )
+      ))
     }
-    h <- as.integer(format(Sys.time(), "%H")); greet <- if (h < 12) "Good Morning" else if (h < 17) "Good Afternoon" else "Good Evening"
     
-    bubbles <- if(length(history()) == 0) {
-      div(class = "empty-state", div(style = "font-size:2rem; opacity:0.4;", "\U0001f4ac"), div(class = "big-text", "Ask me anything about Ditiro!"))
+    h     <- as.integer(format(Sys.time(), "%H"))
+    greet <- if (h > 3 && h < 12) "Good Morning \U00002600\UFE0F"
+    else if (h >= 12 && h < 17) "Good Afternoon \U0001F44B"
+    else if (h >= 17 && h < 21) "Good Evening \U0001F306"
+    else "Hey there \U0001F319"
+    
+    msgs       <- history()
+    is_waiting <- waiting()
+    
+    bubbles <- if (length(msgs) == 0 && !is_waiting) {
+      div(class = "empty-state",
+          div(style = "font-size:2rem; opacity:0.4;", "\U0001f4ac"),
+          div(class = "big-text", "Ask me anything about Ditiro!")
+      )
     } else {
-      lapply(history(), function(m) {
+      bubs <- lapply(msgs, function(m) {
         if (m$role == "user") {
-          div(class = "msg-row user", div(class = "msg-avatar user", "\U0001f464"), div(class = "msg-bubble user", m$text))
+          div(class = "msg-row user",
+              div(class = "msg-avatar user", "\U0001f464"),
+              div(class = "msg-bubble user", m$text)
+          )
         } else {
-          photo <- if (isTRUE(m$photo)) tags$img(src = "ditiro.jpg", style = "width:180px; height:180px; object-fit:cover; border-radius:12px; display:block; margin-bottom:12px;") else NULL
-          div(class = "msg-row agent", div(class = "msg-avatar agent", "\u2736"), div(class = "msg-bubble agent", photo, HTML(commonmark::markdown_html(m$text))))
+          if (isTRUE(m$photo)) {
+            div(class = "msg-row agent",
+                div(class = "msg-avatar agent", "\u2736"),
+                div(class = "msg-bubble agent",
+                    tags$img(src = "ditiro.jpg",
+                             style = "width:180px; height:180px; object-fit:cover; border-radius:12px; display:block; margin-bottom:8px;"),
+                    if (nchar(trimws(m$text)) > 0) div(HTML(commonmark::markdown_html(m$text)))
+                )
+            )
+          } else {
+            div(class = "msg-row agent",
+                div(class = "msg-avatar agent", "\u2736"),
+                div(class = "msg-bubble agent", HTML(commonmark::markdown_html(m$text)))
+            )
+          }
         }
       })
+      if (is_waiting) {
+        bubs <- c(bubs, list(
+          div(class = "msg-row agent",
+              div(class = "msg-avatar agent", "\u2736"),
+              div(class = "typing-bubble",
+                  div(class = "typing-dot"), div(class = "typing-dot"), div(class = "typing-dot")
+              )
+          )
+        ))
+      }
+      bubs
     }
     
-    if (waiting()) bubbles <- c(bubbles, list(div(class = "msg-row agent", div(class = "msg-avatar agent", "\u2736"), div(class = "typing-bubble", div(class = "typing-dot"), div(class = "typing-dot"), div(class = "typing-dot")))))
-    
-    div(div(class = "hero", style = "text-align:center; margin-bottom:10px;", div(class = "big-greeting", paste0(greet, ", ", visitor_name(), "!")),
-            div(class = "hero-sub", "Ask me anything about Ditiro's journey."),
-            div(class = "social-links", tags$a(href = "https://github.com/ditiroletsoalo", target = "_blank", class = "github", "\u2395 GitHub"),
-                tags$a(href = "https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/", target = "_blank", class = "linkedin", "in LinkedIn"), downloadButton("download_cv", "\u21e9 CV", class = "cv-btn"))),
-        div(class = "chat-wrap", div(class = "chat-top-bar", actionButton("clear_chat", "\u21ba Clear Chat")),
-            div(class = "chat-messages", id = "chat_messages", bubbles),
-            div(class = "input-area", tags$textarea(id = "user_input", class = "form-control", rows = "1", placeholder = "Ask me anything about Ditiro!"), actionButton("send", "Send \u2191"))))
+    div(
+      div(class = "hero", style = "text-align:center; margin-bottom:10px;",
+          div(class = "big-greeting", paste0(greet, ", ", visitor_name(), "!")),
+          div(class = "hero-sub", "Ask me anything about Ditiro's journey."),
+          div(class = "social-links",
+              tags$a(href = "https://github.com/ditiroletsoalo", target = "_blank", class = "github", "\u2395 GitHub"),
+              tags$a(href = "https://www.linkedin.com/in/ditiro-letsoalo-3b908722a/", target = "_blank", class = "linkedin", "in LinkedIn"),
+              downloadButton("download_cv", "\u21e9 CV", class = "cv-btn")
+          )
+      ),
+      div(class = "chat-wrap",
+          div(class = "chat-top-bar", actionButton("clear_chat", "\u21ba Clear Chat")),
+          div(class = "chat-messages", id = "chat_messages", bubbles),
+          div(class = "input-area",
+              div(class = "form-group",
+                  tags$textarea(id = "user_input", class = "form-control", rows = "1",
+                                placeholder = "Ask me anything about Ditiro!")
+              ),
+              tags$button(id = "mic_btn", class = "btn", title = "Click to speak", "\U0001f3a4"),
+              actionButton("send", "Send \u2191")
+          )
+      )
+    )
   })
-  output$footer_text <- renderUI({ if (!is.null(visitor_name())) tags$span("Powered by Mistral AI \u00b7 Built with R Shiny") })
+  
+  output$footer_text <- renderUI({
+    if (!is.null(visitor_name())) tags$span("Powered by Mistral AI \u00b7 Built with R Shiny")
+  })
 }
 
 shinyApp(ui, server)
