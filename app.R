@@ -275,12 +275,18 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   birth_date <- as.Date("2001-03-30")
   today <- Sys.Date()
-  ditiro_age <- as.numeric(difftime(today, birth_date, units = "weeks")) %/% 52.1775
+  ditiro_age <- as.numeric(difftime(today, birth_date, units = "weeks")) %/% 52
   
   chat <- chat_mistral(model = "mistral-small", api_args = list(temperature = 0))
   
   chat$chat(paste0(
     "You are Ditiro Letsoalo's personal AI assistant. Speak confidently and warmly.\n\n",
+    
+    "── DATE CONTEXT ──\n",
+    "Today's Date is: ", format(today, "%A, %B %d, %Y"), "\n",
+    "Ditiro's Birthday: March 30, 2001\n",
+    if(format(today, "%m-%d") == "03-30") "SPECIAL: Today is Ditiro's birthday! Wish him well if the user mentions it.\n" else "",
+    "\n",
     
     "── CONVERSATIONAL ETIQUETTE ──\n",
     "1. If asked 'How are you?' or similar, respond warmly and ALWAYS ask the user how they are doing.\n",
